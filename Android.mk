@@ -80,6 +80,7 @@ LOCAL_SRC_FILES := \
 	drmproperty.cpp \
 	glworker.cpp \
 	hwcomposer.cpp \
+        hwcutils.cpp \
 	platform.cpp \
 	separate_rects.cpp \
 	virtualcompositorworker.cpp \
