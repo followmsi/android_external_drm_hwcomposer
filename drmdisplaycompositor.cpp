@@ -600,9 +600,6 @@ int DrmDisplayCompositor::CommitFrame(DrmDisplayComposition *display_comp,
   std::vector<DrmHwcLayer> &layers = display_comp->layers();
   std::vector<DrmCompositionPlane> &comp_planes =
       display_comp->composition_planes();
-  std::vector<DrmCompositionRegion> &pre_comp_regions =
-      display_comp->pre_comp_regions();
-
   DrmConnector *connector = drm_->GetConnectorForDisplay(display_);
   if (!connector) {
     ALOGE("Could not locate connector for display %d", display_);
@@ -781,7 +778,6 @@ int DrmDisplayCompositor::CommitFrame(DrmDisplayComposition *display_comp,
     }
   }
 
-out:
   if (!ret) {
     uint32_t flags = DRM_MODE_ATOMIC_ALLOW_MODESET;
     if (test_only)
