@@ -195,14 +195,18 @@ void DrmDisplayCompositor::FrameWorker::QueueFrame(
   frame.composition = std::move(composition);
   frame.status = status;
   frame_queue_.push(std::move(frame));
+  SignalLocked();
   Unlock();
-  Signal();
 }
 
 void DrmDisplayCompositor::FrameWorker::Routine() {
-  int wait_ret = 0;
+  int ret = Lock();
+  if (ret) {
+    ALOGE("Failed to lock worker, %d", ret);
+    return;
+  }
 
-  Lock();
+  int wait_ret = 0;
   if (frame_queue_.empty()) {
     wait_ret = WaitForSignalOrExitLocked();
   }
@@ -212,7 +216,12 @@ void DrmDisplayCompositor::FrameWorker::Routine() {
     frame = std::move(frame_queue_.front());
     frame_queue_.pop();
   }
-  Unlock();
+
+  ret = Unlock();
+  if (ret) {
+    ALOGE("Failed to unlock worker, %d", ret);
+    return;
+  }
 
   if (wait_ret == -EINTR) {
     return;

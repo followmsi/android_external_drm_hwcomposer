@@ -48,19 +48,41 @@ int VSyncWorker::Init(DrmResources *drm, int display) {
   return InitWorker();
 }
 
-void VSyncWorker::RegisterCallback(std::shared_ptr<VsyncCallback> callback) {
-  Lock();
+int VSyncWorker::RegisterCallback(std::shared_ptr<VsyncCallback> callback) {
+  int ret = Lock();
+  if (ret) {
+    ALOGE("Failed to lock vsync worker lock %d\n", ret);
+    return ret;
+  }
+
   callback_ = callback;
-  Unlock();
+
+  ret = Unlock();
+  if (ret) {
+    ALOGE("Failed to unlock vsync worker lock %d\n", ret);
+    return ret;
+  }
+  return 0;
 }
 
-void VSyncWorker::VSyncControl(bool enabled) {
-  Lock();
+int VSyncWorker::VSyncControl(bool enabled) {
+  int ret = Lock();
+  if (ret) {
+    ALOGE("Failed to lock vsync worker lock %d\n", ret);
+    return ret;
+  }
+
   enabled_ = enabled;
   last_timestamp_ = -1;
-  Unlock();
+  int signal_ret = SignalLocked();
 
-  Signal();
+  ret = Unlock();
+  if (ret) {
+    ALOGE("Failed to unlock vsync worker lock %d\n", ret);
+    return ret;
+  }
+
+  return signal_ret;
 }
 
 /*
@@ -113,9 +135,12 @@ int VSyncWorker::SyntheticWaitVBlank(int64_t *timestamp) {
 }
 
 void VSyncWorker::Routine() {
-  int ret;
+  int ret = Lock();
+  if (ret) {
+    ALOGE("Failed to lock worker %d", ret);
+    return;
+  }
 
-  Lock();
   if (!enabled_) {
     ret = WaitForSignalOrExitLocked();
     if (ret == -EINTR) {
@@ -126,7 +151,11 @@ void VSyncWorker::Routine() {
   bool enabled = enabled_;
   int display = display_;
   std::shared_ptr<VsyncCallback> callback(callback_);
-  Unlock();
+
+  ret = Unlock();
+  if (ret) {
+    ALOGE("Failed to unlock worker %d", ret);
+  }
 
   if (!enabled)
     return;

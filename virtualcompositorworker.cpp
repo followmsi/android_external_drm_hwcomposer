@@ -89,14 +89,18 @@ void VirtualCompositorWorker::QueueComposite(hwc_display_contents_1_t *dc) {
   }
 
   composite_queue_.push(std::move(composition));
+  SignalLocked();
   Unlock();
-  Signal();
 }
 
 void VirtualCompositorWorker::Routine() {
-  int wait_ret = 0;
+  int ret = Lock();
+  if (ret) {
+    ALOGE("Failed to lock worker, %d", ret);
+    return;
+  }
 
-  Lock();
+  int wait_ret = 0;
   if (composite_queue_.empty()) {
     wait_ret = WaitForSignalOrExitLocked();
   }
@@ -106,7 +110,12 @@ void VirtualCompositorWorker::Routine() {
     composition = std::move(composite_queue_.front());
     composite_queue_.pop();
   }
-  Unlock();
+
+  ret = Unlock();
+  if (ret) {
+    ALOGE("Failed to unlock worker, %d", ret);
+    return;
+  }
 
   if (wait_ret == -EINTR) {
     return;

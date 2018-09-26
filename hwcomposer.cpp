@@ -488,8 +488,7 @@ static int hwc_event_control(struct hwc_composer_device_1 *dev, int display,
 
   struct hwc_context_t *ctx = (struct hwc_context_t *)&dev->common;
   hwc_drm_display_t *hd = &ctx->displays[display];
-  hd->vsync_worker.VSyncControl(enabled);
-  return 0;
+  return hd->vsync_worker.VSyncControl(enabled);
 }
 
 static int hwc_set_power_mode(struct hwc_composer_device_1 *dev, int display,

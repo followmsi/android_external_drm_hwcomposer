@@ -236,7 +236,11 @@ HWC2::Error DrmHwcTwo::HwcDisplay::RegisterVsyncCallback(
     hwc2_callback_data_t data, hwc2_function_pointer_t func) {
   supported(__func__);
   auto callback = std::make_shared<DrmVsyncCallback>(data, func);
-  vsync_worker_.RegisterCallback(std::move(callback));
+  int ret = vsync_worker_.RegisterCallback(std::move(callback));
+  if (ret) {
+    ALOGE("Failed to register callback d=%" PRIu64 " ret=%d", handle_, ret);
+    return HWC2::Error::BadDisplay;
+  }
   return HWC2::Error::None;
 }
 
