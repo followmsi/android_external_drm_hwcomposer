@@ -30,23 +30,21 @@ Worker::~Worker() {
 }
 
 int Worker::InitWorker() {
-  std::lock_guard<std::mutex> lk(mutex_);
   if (initialized())
     return -EALREADY;
 
   thread_ = std::unique_ptr<std::thread>(
       new std::thread(&Worker::InternalRoutine, this));
   initialized_ = true;
-  exit_ = false;
 
   return 0;
 }
 
 void Worker::Exit() {
-  std::unique_lock<std::mutex> lk(mutex_);
-  exit_ = true;
   if (initialized()) {
-    lk.unlock();
+    Lock();
+    exit_ = true;
+    Unlock();
     cond_.notify_all();
     thread_->join();
     initialized_ = false;
@@ -70,7 +68,7 @@ int Worker::WaitForSignalOrExitLocked(int64_t max_nanoseconds) {
   if (should_exit())
     ret = -EINTR;
 
-  // release leaves mutex locked when going out of scope
+  // release leaves lock unlocked when returning
   lk.release();
 
   return ret;
